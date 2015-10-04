@@ -1,25 +1,39 @@
-# scarab
+# Scarab
 
-FIXME: Write a one-line description of your library/project.
+App for managing translation of a repo of markdown files
 
 ## Overview
 
-FIXME: Write a paragraph about the library/project and highlight its goals.
-
 ## Setup
+
+Start figwheel, so CLJS and CSS are automatically reloaded
+
+    lein figwheel
+
+This will drop into a browser-connected REPL after opening the browser (see
+below), so you have a REPL for evaluating Clojurescript.
+
+Start the ring server, to serve up `index.html`, and also handle API requests
+
+    lein repl
+    user> (require 'scarab.core)
+    user> (scarab.core/start-server)
+
+Keep this REPL open, you can use it to evaluate Clojure. You can also do this in
+your editor, e.g. `cider-jack-in`.
+
+Watch for Garden style definition changes so they recompile from clj to css.
+Figwheel will make sure the browser instantly updates.
+
+    lein garden auto
+
+Visit [localhost:8999](http://localhost:8999). This is the ring server. You have
+to use this one, and not the server provided by figwheel (`:3499`), or you won't
+be able to make XHR requests due to browser XSS same-origin restrictions.
 
 To get an interactive development environment run:
 
     lein figwheel
-
-and open your browser at [localhost:3449](http://localhost:3449/).
-This will auto compile and send all changes to the browser without the
-need to reload. After the compilation process is complete, you will
-get a Browser Connected REPL. An easy way to try it is:
-
-    (js/alert "Am I connected?")
-
-and you should see an alert in the browser window.
 
 To clean all compiled files:
 
@@ -29,11 +43,8 @@ To create a production build run:
 
     lein cljsbuild once min
 
-And open your browser in `resources/public/index.html`. You will not
-get live reloading, nor a REPL. 
-
 ## License
 
-Copyright © 2014 FIXME
+Copyright © 2015 Arne Brasseur
 
-Distributed under the Eclipse Public License either version 1.0 or (at your option) any later version.
+Distributed under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/)

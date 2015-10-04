@@ -2,8 +2,15 @@
   (:require [endophile.core :as md]
             [compojure.core :as http]
             [compojure.route :as route]
+            [compojure.handler :as handler]
             [clj-jgit.porcelain :as git]
-            [clj-jgit.querying :as gitq]))
+            [clj-jgit.querying :as gitq]
+            [org.httpkit.server :as httpkit]
+            [clojure.data.json :as json]
+            [ring.middleware.reload :refer [wrap-reload]])
+  (:import [java.io ByteArrayOutputStream]
+           [org.eclipse.jgit.treewalk TreeWalk]))
+
 
 (def repo-dir "/home/arne/projects/scarab-repos/")
 
@@ -15,11 +22,27 @@
                         (clj-jgit.internal/new-rev-walk repo)
                         commit-id))
 
+
+        ;; ObjectId objectId = treeWalk.getObjectId(0);
+        ;; ObjectLoader loader = repository.open(objectId);
+
+        ;; // and then one can the loader to read the file
+        ;; loader.copyTo(System.out);
+
+        ;; revWalk.dispose();
+
+        ;; repository.close();
+
+(defn git-blob-contents [repo blob-id]
+  (let [stream (ByteArrayOutputStream.)]
+    (.copyTo (.open (.getRepository repo) blob-id) stream)
+    (.toString stream)))
+
 (defn git-list-paths
   "Returns a lazy seq of all file pathnames in the tree of a given commit. Does
   not list directories"
   [repo commit]
-  (let [treewalk (org.eclipse.jgit.treewalk.TreeWalk. (.getRepository repo))]
+  (let [treewalk (TreeWalk. (.getRepository repo))]
     (doto treewalk
       (.addTree (.getTree commit))
       (.setRecursive true))
@@ -29,52 +52,58 @@
                 nil))]
       (nextfn))))
 
-(def source-repo (git-repo-by-name "ClojureBridge-organizing"))
-(def target-repo (git-repo-by-name "ClojureBridge-organizing-nl"))
-
-
-
-;; (println
-;;  (let [repo source-repo
-;;        patch (gitq/changed-files-with-patch repo (first (git/git-log repo)))
-;;        info (gitq/commit-info repo (first (git/git-log repo)))]
-;;    info))
-
-;; md
-
-;; (let [tags (-> "/home/arne/github/ClojureBridge-organizing/Workshop-Planning-Tasks.md"
-;;                slurp
-;;                md/mp
-;;                md/to-clj)]
-;;   (doseq [x tags]
-;;     (println (:tag x))))
-
-(defn action-list-files [repo-name commit-id]
+(defn git-repo-commit [repo-name commit-id]
   (let [repo (git-repo-by-name repo-name)
         commit (if (= commit-id "~")
                  (-> repo git/git-log first)
                  (git-commit-by-id repo commit-id))]
+    [repo commit]))
+
+(defn action-list-files [repo-name commit-id]
+  (let [[repo commit] (git-repo-commit repo-name commit-id)]
     (git-list-paths repo commit)))
 
-
-;; (http/defroutes app-routes
-;;   (http/GET ["/repo/:repo/commit/:commit/ls"] [repo commit] (render user-view {:id id}))
-;;   (route/not-found "Not Found"))
-
-
-
-
-;; org.eclipse.jgit.treewalk.TreeWalk treeWalk = new TreeWalk(repository);
-;; treeWalk.addTree(tree);
-;; treeWalk.setRecursive(false);
-;; while (treeWalk.next()) {
-;;     if (treeWalk.isSubtree()) {
-;;         System.out.println("dir: " + treeWalk.getPathString());
-;;         treeWalk.enterSubtree();
-;;     } else {
-;;         System.out.println("file: " + treeWalk.getPathString());
-;;     }
-;; }
+(defn action-parse-markdown [repo-name commit-id path]
+  (println path)
+  (let [[repo commit] (git-repo-commit repo-name commit-id)]
+    (->> (git/get-blob-id repo commit path)
+         (git-blob-contents repo)
+         md/mp
+         md/to-clj)))
 
 
-;; 8e27230a46d3c88d
+(http/defroutes app-routes
+  (http/GET ["/repo/:repo/commit/:commit/ls"] [repo commit]
+            (json/write-str (action-list-files repo commit)))
+  (http/GET ["/repo/:repo/commit/:commit/files/:filename"] [repo commit filename]
+            (json/write-str (action-parse-markdown repo commit filename)))
+  (route/resources "/")
+  (route/not-found "Not Found"))
+
+(def ring-handler (-> #'app-routes
+                      handler/api
+                      wrap-reload))
+
+(defn start-server []
+  (httpkit/run-server ring-handler {:port 8999}))
+
+(defonce ^:dynamic *server* (start-server))
+
+
+
+(comment
+  (def repo (git-repo-by-name "ClojureBridge-organizing"))
+
+  (println
+   (let [repo source-repo
+         patch (gitq/changed-files-with-patch repo (first (git/git-log repo)))
+         info (gitq/commit-info repo (first (git/git-log repo)))]
+     info))
+
+  (let [tags (-> "/home/arne/github/ClojureBridge-organizing/Workshop-Planning-Tasks.md"
+                 slurp
+                 md/mp
+                 md/to-clj)]
+    (doseq [x tags]
+      (println (:tag x))))
+  )

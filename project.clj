@@ -1,8 +1,8 @@
 (defproject scarab "0.1.0-SNAPSHOT"
-  :description "FIXME: write this!"
-  :url "http://example.com/FIXME"
+  :description "Manage translating a collection of Markdown files"
+  :url "http://github.com/plexus/scarab"
   :license {:name "Mozilla Public License"
-            :url ""}
+            :url "https://www.mozilla.org/en-US/MPL/2.0/"}
 
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.122"]
@@ -12,14 +12,22 @@
                  [compojure "1.4.0"]
                  [enlive "1.1.6"]
                  [org.omcljs/om "0.9.0"]
-                 [http-kit "2.2.0-SNAPSHOT"]]
+                 [http-kit "2.2.0-SNAPSHOT"]
+                 [org.clojure/google-closure-library "0.0-20150805-acd8b553"]
+                 [ring "1.4.0"]
+                 [org.clojure/data.json "0.2.6"]
+                 [garden "1.3.0-SNAPSHOT"]
+                 [facjure/mesh "0.4.0"]]
 
   :plugins [[lein-cljsbuild "1.1.0"]
-            [lein-figwheel "0.4.0"]]
+            [lein-figwheel "0.4.0"]
+            [lein-garden "0.2.6"]]
 
   :source-paths ["src/clj"]
 
-  :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
+  :clean-targets ^{:protect false} ["resources/public/js/compiled"
+                                    "resources/public/css/compiled"
+                                    "target"]
 
   :cljsbuild {
     :builds [{:id "dev"
@@ -69,4 +77,16 @@
 
              ;; to configure a different figwheel logfile path
              ;; :server-logfile "tmp/logs/figwheel-logfile.log"
-             })
+             }
+
+  :garden {:builds [{;; Optional name of the build:
+                     :id "screen"
+                     ;; Source paths where the stylesheet source code is
+                     :source-paths ["src/clj"]
+                     ;; The var containing your stylesheet:
+                     :stylesheet scarab.styles/screen
+                     ;; Compiler flags passed to `garden.core/css`:
+                     :compiler {;; Where to save the file:
+                                :output-to "resources/public/css/compiled/screen.css"
+                                ;; Compress the output?
+                                :pretty-print? false}}]})
