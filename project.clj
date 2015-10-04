@@ -17,7 +17,9 @@
                  [ring "1.4.0"]
                  [org.clojure/data.json "0.2.6"]
                  [garden "1.3.0-SNAPSHOT"]
-                 [facjure/mesh "0.4.0"]]
+                 [facjure/mesh "0.4.0"]
+                 [sablono "0.3.6"]
+                 [com.cognitect/transit-cljs "0.8.225"]]
 
   :plugins [[lein-cljsbuild "1.1.0"]
             [lein-figwheel "0.4.0"]
@@ -55,13 +57,17 @@
              :css-dirs ["resources/public/css"] ;; watch and update CSS
 
              ;; Start an nREPL server into the running figwheel process
-             ;; :nrepl-port 7888
+             :nrepl-port 7888
+
+             :nrepl-middleware ["cider.nrepl/cider-middleware"
+                                "refactor-nrepl.middleware/wrap-refactor"
+                                "cemerick.piggieback/wrap-cljs-repl"]
 
              ;; Server Ring Handler (optional)
              ;; if you want to embed a ring handler into the figwheel http-kit
              ;; server, this is for simple ring servers, if this
              ;; doesn't work for you just run your own server :)
-             ;; :ring-handler hello_world.server/handler
+             :ring-handler scarab.core/ring-handler
 
              ;; To be able to open files in your editor from the heads up display
              ;; you will need to put a script on your path.

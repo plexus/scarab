@@ -71,7 +71,6 @@
          md/mp
          md/to-clj)))
 
-
 (http/defroutes app-routes
   (http/GET ["/repo/:repo/commit/:commit/ls"] [repo commit]
             (json/write-str (action-list-files repo commit)))
@@ -84,14 +83,15 @@
                       handler/api
                       wrap-reload))
 
-(defn start-server []
-  (httpkit/run-server ring-handler {:port 8999}))
-
-(defonce ^:dynamic *server* (start-server))
-
-
 
 (comment
+  ;; done by figwheel now
+  (defn start-server []
+    (httpkit/run-server ring-handler {:port 8999}))
+
+  (defonce ^:dynamic *server* (start-server))
+
+
   (def repo (git-repo-by-name "ClojureBridge-organizing"))
 
   (println

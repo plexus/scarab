@@ -3,10 +3,10 @@
               [om.dom :as dom]
               [clojure.browser.net :as net]
               [clojure.browser.event :as event]
-              [cljs.core.async :as csp])
-    (:require-macros [clojure.core.async :refer [go]]))
-
-
+              [cljs.core.async :as csp]
+              [cognitect.transit :as transit]
+              [sablono.core :as html :refer-macros [html]])
+    (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (enable-console-print!)
 
@@ -19,8 +19,10 @@
 (defn response-text [evt]
   (.getResponseText (.-target evt)))
 
+(def json-reader (transit/reader :json))
+
 (defn response-json [evt]
-  (.getResponseJson (.-target evt)))
+  (transit/read json-reader (response-text evt)))
 
 (defn http-get [uri f]
   (let [conn (net/xhr-connection)]
@@ -39,15 +41,35 @@
     (render [_]
       (let [files (:file-list data)
             repo (:repo data)]
-        (dom/div nil
-                 (dom/h1 nil "Om is live!")
-                 (apply dom/ul nil
-                        (map #(dom/li #js {:onClick (fn [e] (visit-file! repo %))} %) files)))))))
+        (html
+         [:div
+          [:h1 "Om is live!"]
+          [:ul (map #(vector :li {:onClick (fn [e] (visit-file! repo %))} %)
+                    files)]])))))
+
+(declare render-tag)
+
+(defn tag-component [data owner]
+  (reify
+    om/IRender
+    (render [_] (html
+                 [(data "tag") (or (data "attrs") {}) (map render-tag (data "content") (range))] ))))
+
+;; #_[(:tag data) (apply str (:content data))]
+
+(defn render-tag [data idx]
+  (cond
+    (string? data) data
+    (vector? data) (map render-tag data (range))
+    (map? data) (om/build tag-component data {:react-key idx})))
 
 (defn doc-component [data owner]
   (reify
     om/IRender
-    (render [_] (dom/div nil (pr-str (:doc data))))))
+    (render [_] (html
+                 [:div
+                  [:div (map render-tag (:doc data) (range))]
+                  #_[:div (pr-str (:doc data))]]))))
 
 (defn app-component [data owner]
   (reify

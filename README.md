@@ -6,34 +6,31 @@ App for managing translation of a repo of markdown files
 
 ## Setup
 
-Start figwheel, so CLJS and CSS are automatically reloaded
+Start figwheel, which basically handles everything.
 
     lein figwheel
 
-This will drop into a browser-connected REPL after opening the browser (see
-below), so you have a REPL for evaluating Clojurescript.
+This takes care of
 
-Start the ring server, to serve up `index.html`, and also handle API requests
+* launching a ring web server, main entry point at [http://localhost:3449/index.html](http://localhost:3449/index.html)
+* auto-reloading CLJS and CSS
+* starting a browser-connected REPL
+* providing an nREPL
 
-    lein repl
-    user> (require 'scarab.core)
-    user> (scarab.core/start-server)
+The figwheel process will give you a Clojurescript REPL as soon as you've loaded
+the page in the browser. You can also connect to this process at port 7888, e.g.
+with CIDER, to get a Clojure REPL.
 
-Keep this REPL open, you can use it to evaluate Clojure. You can also do this in
-your editor, e.g. `cider-jack-in`.
+To drop into a browser REPL from Clojure, do
 
-Watch for Garden style definition changes so they recompile from clj to css.
-Figwheel will make sure the browser instantly updates.
+```
+user> (use 'figwheel-sidecar.repl-api)
+user> (cljs-repl)
+```
+
+To edit the styles (CSS) use Garden. Style definitions are done in Clojure. Changes will trigger a compile from CLJ to CSS. Figwheel will make sure the browser instantly updates.
 
     lein garden auto
-
-Visit [localhost:8999](http://localhost:8999). This is the ring server. You have
-to use this one, and not the server provided by figwheel (`:3499`), or you won't
-be able to make XHR requests due to browser XSS same-origin restrictions.
-
-To get an interactive development environment run:
-
-    lein figwheel
 
 To clean all compiled files:
 
